@@ -17,6 +17,6 @@ setup(
     description='Library for interfacing with MPU6050 over I2C',
     author='Eugenio Calandrini',
     author_email='calandrini.e@gmail.com',
-    url='https://github.com/your_username/my_sensor',
+    url='https://github.com/ecalandrini/mpu6050_python_rpi',
     license='MIT',
 )
