@@ -46,10 +46,50 @@ class MPU6050:
         return data
     
     def write_data(self, register, value):
+        """
+        Function to write in a register.
+        Wrapper function of the "write_byte_data".
+
+        Parameters
+        ----------
+        register : Hex
+            Address of the register to be write.
+        value : int
+            Value to write in the register.
+
+        Returns
+        -------
+        data : int
+            Read byte as int. 
+            To be trnasformed as a 8-bit string.
+
+        """
         # Example: Read data from a specific register of the sensor
         self.i2c.write_byte_data(self.address, register, value)
         
     def modify_string(self, original_string, new_string, position):
+        """
+        Function to modify a portion of bits in a bit string
+        Example: original string = "00000"
+                new string = "11"
+                position = 2
+                Result = "00110"
+
+        Parameters
+        ----------
+        original_string : str
+            original bit string.
+        new_string : str
+            bit string to modify.
+        position : int
+            position of the first bit to modify in the original_string.
+
+        Returns
+        -------
+        str
+            modified bit string.
+
+        """
         if position < 0 or position >= len(self):
             print("Invalid position.")
         elif position + len(new_string) > original_string:
@@ -217,8 +257,8 @@ class MPU6050:
 
     def accel_config_get(self):
         """
-        Getter function to trigger accelerometer self test and configure the accelerometer full scale
-        range. 
+        Getter function to retrieve the accelerometer self test settings and the accelerometer full scale
+        range configuration. 
         See register 28 for more information. 
 
         Returns
@@ -238,6 +278,27 @@ class MPU6050:
         print("Gyro full scale range +/-", 2**(AFS_SEL+1), "g")
         
     def accel_config_set(self, XA_ST, YA_ST, ZA_ST, AFS_SEL):
+        """
+        Setter function to enable the accelerometer self test settings and configure the accelerometer full scale
+        range. 
+        See register 28 for more information.
+
+        Parameters
+        ----------
+        XA_ST : int
+            Set to 1 to enable the accelerometer x-axis self test.
+        YA_ST : int
+            Set to 1 to enable the accelerometer y-axis self test.
+        ZA_ST : TYPE
+            Set to 1 to enable the accelerometer z-axis self test.
+        AFS_SEL : int [0:4]
+            Settings of the accelerometer full scale range.
+
+        Returns
+        -------
+        None.
+
+        """
         
         bit_string = str(XA_ST) + str(YA_ST) + str(ZA_ST) + self.i2c.int_to_binary_string(AFS_SEL, 2) + "000"
         self.write_data(RegisterMap.ACCEL_CONFIG, self.i2c.binary_string_to_int(bit_string))
@@ -315,6 +376,14 @@ class MPU6050:
         self.write_data(RegisterMap.PWR_MGMT_2, self.i2c.binary_string_to_int(data))
         
     def temp_disable(self):
+        """
+        Function to disable the temperature sensor.
+
+        Returns
+        -------
+        None.
+
+        """
         
         data = self.read_data(RegisterMap.PWR_MGMT_1)
         bin_string = self.i2c.int_to_binary_string(data, 8)
@@ -322,6 +391,14 @@ class MPU6050:
         print("Temperature Sensor disabled")
         
     def temp_enable(self):
+        """
+        Function to enable the temperature sensor.
+
+        Returns
+        -------
+        None.
+
+        """
         
         data = self.read_data(RegisterMap.PWR_MGMT_1)
         bin_string = self.i2c.int_to_binary_string(data, 8)
@@ -329,6 +406,14 @@ class MPU6050:
         print("Temperature Sensor enabled")
         
     def read_gyro_x(self):
+        """
+        Function to read the value of the gyro x-axis.
+
+        Returns
+        -------
+        None.
+
+        """
         
         bits_high = self.read_data(RegisterMap.GYRO_XOUT_H)
         bits_low = self.read_data(RegisterMap.GYRO_XOUT_L)
@@ -337,6 +422,14 @@ class MPU6050:
         self.gyro_x = combined_value/self.gyro_fs
 
     def read_gyro_y(self):
+        """
+        Function to read the value of the gyro y-axis.
+
+        Returns
+        -------
+        None.
+
+        """
         
         bits_high = self.read_data(RegisterMap.GYRO_YOUT_H)
         bits_low = self.read_data(RegisterMap.GYRO_YOUT_L)
@@ -345,6 +438,14 @@ class MPU6050:
         self.gyro_y = combined_value/self.gyro_fs
 
     def read_gyro_z(self):
+        """
+        Function to read the value of the gyro z-axis.
+
+        Returns
+        -------
+        None.
+
+        """
         
         bits_high = self.read_data(RegisterMap.GYRO_ZOUT_H)
         bits_low = self.read_data(RegisterMap.GYRO_ZOUT_L)
@@ -353,21 +454,45 @@ class MPU6050:
         self.gyro_x = combined_value/self.gyro_fs        
         
     def read_gyro(self):
+        """
+        Function to read all the 3 axis of the gyro.
+
+        Returns
+        -------
+        None.
+
+        """
         
         self.read_gyro_x()
         self.read_gyro_y()
         self.read_gyro_z()
         
     def read_temperature(self):
+        """
+        Function to read the temperature    
+    
+        Returns
+        -------
+        None.
+    
+        """
         
-       bits_high = self.read_data(RegisterMap.TEMP_OUT_H)
-       bits_low = self.read_data(RegisterMap.TEMP_OUT_L)
-       combined_value = self.i2c.combine_bits(bits_high, bits_low)
-       signed_value = self.i2c.convert_to_signed(combined_value, 16)
+        bits_high = self.read_data(RegisterMap.TEMP_OUT_H)
+        bits_low = self.read_data(RegisterMap.TEMP_OUT_L)
+        combined_value = self.i2c.combine_bits(bits_high, bits_low)
+        signed_value = self.i2c.convert_to_signed(combined_value, 16)
        
-       self.temp = signed_value/340 + 36.53
+        self.temp = signed_value/340 + 36.53
        
     def read_accel_x(self):
+        """
+        Function to read the accel x-axis
+
+        Returns
+        -------
+        None.
+
+        """
         
         bits_high = self.read_data(RegisterMap.ACCEL_XOUT_H)
         bits_low = self.read_data(RegisterMap.ACCEL_XOUT_L)
@@ -375,7 +500,15 @@ class MPU6050:
         
         self.accel_x = combined_value/self.accel_fs
 
-    def read_gyro_y(self):
+    def read_accel_y(self):
+        """
+        Function to read the accel y-axis
+
+        Returns
+        -------
+        None.
+
+        """
         
         bits_high = self.read_data(RegisterMap.ACCEL_YOUT_H)
         bits_low = self.read_data(RegisterMap.ACCEL_YOUT_L)
@@ -383,7 +516,15 @@ class MPU6050:
         
         self.accel_y = combined_value/self.accel_fs
 
-    def read_gyro_z(self):
+    def read_accel_z(self):
+        """
+        Function to read the accel z-axis
+
+        Returns
+        -------
+        None.
+
+        """
         
         bits_high = self.read_data(RegisterMap.ACCEL_ZOUT_H)
         bits_low = self.read_data(RegisterMap.ACCEL_ZOUT_L)
@@ -391,7 +532,15 @@ class MPU6050:
         
         self.accel_z = combined_value/self.accel_fs        
         
-    def read_gyro(self):
+    def read_accel(self):
+        """
+        Function to read all the 3 axis of the accel.
+
+        Returns
+        -------
+        None.
+
+        """
         
         self.read_accel_x()
         self.read_accel_y()
@@ -421,6 +570,12 @@ class MPU6050:
         else: print("delta FT for gyro x-axis", deltaFT, "%. Self Test not passed!") 
         
     def selftest_gyro_y(self):
+        """
+        Function to perform the self test of the gyro y-axis.
+        :return: None
+        :rtype: None
+
+        """
         
         self.gyro_config_set(0, 1, 0, 0)
         self.read_gyro_y()
