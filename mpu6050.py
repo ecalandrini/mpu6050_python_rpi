@@ -14,8 +14,33 @@ class MPU6050:
         self.address = address
         self.i2c = I2CInterface(bus_number)
         self.sr = 0
+        self.gyro_x = 0
+        self.gyro_y = 0
+        self.gyro_z = 0
+        self.accel_x = 0
+        self.accel_y = 0
+        self.accel_z = 0
+        self.temp = 0
+        self.gyro_fs = 0
+        self.accel_fs = 0
 
     def read_data(self, register):
+        """
+        Function to read a register.
+        Wrapper function of the "read_byte_data".
+
+        Parameters
+        ----------
+        register : Hex
+            Address of the register to be read.
+
+        Returns
+        -------
+        data : int
+            Read byte as int. 
+            To be trnasformed as a 8-bit string.
+
+        """
         # Example: Read data from a specific register of the sensor
         data = self.i2c.read_byte_data(self.address, register)
         return data
@@ -23,6 +48,14 @@ class MPU6050:
     def write_data(self, register, value):
         # Example: Read data from a specific register of the sensor
         self.i2c.write_byte_data(self.address, register, value)
+        
+    def modify_string(self, original_string, new_string, position):
+        if position < 0 or position >= len(self):
+            print("Invalid position.")
+        elif position + len(new_string) > original_string:
+            print("Invalid length")
+        else:
+            return original_string[:position] + new_string + original_string[position + len(new_string):]
 
     def calibrate(self):
         # Example: Write calibration data to a specific register of the sensor
@@ -149,7 +182,8 @@ class MPU6050:
         XG_ST = bit_string[0]
         YG_ST = bit_string[1]
         ZG_ST = bit_string[2]
-        FS_SEL = bit_string[3:5]
+        FS_SEL = self.i2c.binary_string_to_int(bit_string[3:5])
+        self.gyro_fs = FS_SEL
         print("Self-Test activated on axis (x, y, z)", XG_ST, YG_ST, ZG_ST)
         print("Gyro full scale range +/-", 250*2**FS_SEL, "º/s")
         
@@ -176,6 +210,7 @@ class MPU6050:
         """
         bit_string = str(XG_ST) + str(YG_ST) + str(ZG_ST) + self.i2c.int_to_binary_string(FS_SEL, 2) + "000"
         self.write_data(RegisterMap.GYRO_CONFIG, self.i2c.binary_string_to_int(bit_string))
+        self.gyro_fs = FS_SEL
         
         print("Activation of Self-Test on axis (x, y, z)", XG_ST, YG_ST, ZG_ST)
         print("Setting the Gyro full scale range +/-", 250*2**FS_SEL, "º/s")
@@ -196,9 +231,332 @@ class MPU6050:
         XA_ST = bit_string[0]
         YA_ST = bit_string[1]
         ZA_ST = bit_string[2]
-        AFS_SEL = bit_string[3:5]
+        AFS_SEL = self.i2c.binary_string_to_int(bit_string[3:5])
+        self.accel_fs = AFS_SEL
+        
         print("Self-Test activated on axis (x, y, z)", XA_ST, YA_ST, ZA_ST)
-        print("Gyro full scale range +/-", 2*2**AFS_SEL, "g")
+        print("Gyro full scale range +/-", 2**(AFS_SEL+1), "g")
         
+    def accel_config_set(self, XA_ST, YA_ST, ZA_ST, AFS_SEL):
         
+        bit_string = str(XA_ST) + str(YA_ST) + str(ZA_ST) + self.i2c.int_to_binary_string(AFS_SEL, 2) + "000"
+        self.write_data(RegisterMap.ACCEL_CONFIG, self.i2c.binary_string_to_int(bit_string))
+        self.accel_fs = AFS_SEL
+        
+        print("Activation of Self-Test on Accel axis (x, y, z)", XA_ST, YA_ST, ZA_ST)
+        print("Setting the Accel full scale range +/-", 2**(AFS_SEL+1), "g")
+        
+    def who_am_i(self):
+        """
+        Function to verify the identity of the device.
+        The default value of the register is 0x68.
+
+        Returns
+        -------
+        None.
+
+        """
+        data = self.read_data(RegisterMap.WHO_AM_I)
+        bit_string = self.i2c.int_to_binary_string(data, 8)[1:-1]
+        new_value = hex(self.binary_string_to_int(bit_string))
+        if new_value == 0x68:
+            print("I'm a MPU-6050!")
+        else: print("I'm not a MPU-6050 :(, my name is", new_value)
+        
+    def wakeup(self):
+        """
+        Function to wake up the MPU6050.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.write_data(RegisterMap.PWR_MGMT_1, 0)
+        
+    def sleep(self):
+        """
+        Function to wake up the MPU6050.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.write_data(RegisterMap.PWR_MGMT_1, self.i2c.binary_string_to_int("01000000"))
+        
+    def reset(self):
+        """
+        Function to reset the MPU6050.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.write_data(RegisterMap.PWR_MGMT_1, self.i2c.binary_string_to_int("10000000"))
+
+    def cycle(self, LP_WAKE_CTRL):
+        """
+        Function to activate the cycle mode of the MPU6050.
+
+        Parameters
+        ----------
+        LP_WAKE_CTRL : int [0:4]
+            Definition of the cycle frequency.
+
+        Returns
+        -------
+        None.
+
+        """
+        data = self.i2c.int_to_binary_string(LP_WAKE_CTRL, 2)+"000000"
+        self.write_data(RegisterMap.PWR_MGMT_1, self.i2c.binary_string_to_int("00100000"))
+        self.write_data(RegisterMap.PWR_MGMT_2, self.i2c.binary_string_to_int(data))
+        
+    def temp_disable(self):
+        
+        data = self.read_data(RegisterMap.PWR_MGMT_1)
+        bin_string = self.i2c.int_to_binary_string(data, 8)
+        new_string = self.modify_string(bin_string, "1", 4)
+        print("Temperature Sensor disabled")
+        
+    def temp_enable(self):
+        
+        data = self.read_data(RegisterMap.PWR_MGMT_1)
+        bin_string = self.i2c.int_to_binary_string(data, 8)
+        new_string = self.modify_string(bin_string, "0", 4)
+        print("Temperature Sensor enabled")
+        
+    def read_gyro_x(self):
+        
+        bits_high = self.read_data(RegisterMap.GYRO_XOUT_H)
+        bits_low = self.read_data(RegisterMap.GYRO_XOUT_L)
+        combined_value = self.i2c.combine_bits(bits_high, bits_low)
+        
+        self.gyro_x = combined_value/self.gyro_fs
+
+    def read_gyro_y(self):
+        
+        bits_high = self.read_data(RegisterMap.GYRO_YOUT_H)
+        bits_low = self.read_data(RegisterMap.GYRO_YOUT_L)
+        combined_value = self.i2c.combine_bits(bits_high, bits_low)
+        
+        self.gyro_y = combined_value/self.gyro_fs
+
+    def read_gyro_z(self):
+        
+        bits_high = self.read_data(RegisterMap.GYRO_ZOUT_H)
+        bits_low = self.read_data(RegisterMap.GYRO_ZOUT_L)
+        combined_value = self.i2c.combine_bits(bits_high, bits_low)
+        
+        self.gyro_x = combined_value/self.gyro_fs        
+        
+    def read_gyro(self):
+        
+        self.read_gyro_x()
+        self.read_gyro_y()
+        self.read_gyro_z()
+        
+    def read_temperature(self):
+        
+       bits_high = self.read_data(RegisterMap.TEMP_OUT_H)
+       bits_low = self.read_data(RegisterMap.TEMP_OUT_L)
+       combined_value = self.i2c.combine_bits(bits_high, bits_low)
+       signed_value = self.i2c.convert_to_signed(combined_value, 16)
+       
+       self.temp = signed_value/340 + 36.53
+       
+    def read_accel_x(self):
+        
+        bits_high = self.read_data(RegisterMap.ACCEL_XOUT_H)
+        bits_low = self.read_data(RegisterMap.ACCEL_XOUT_L)
+        combined_value = self.i2c.combine_bits(bits_high, bits_low)
+        
+        self.accel_x = combined_value/self.accel_fs
+
+    def read_gyro_y(self):
+        
+        bits_high = self.read_data(RegisterMap.ACCEL_YOUT_H)
+        bits_low = self.read_data(RegisterMap.ACCEL_YOUT_L)
+        combined_value = self.i2c.combine_bits(bits_high, bits_low)
+        
+        self.accel_y = combined_value/self.accel_fs
+
+    def read_gyro_z(self):
+        
+        bits_high = self.read_data(RegisterMap.ACCEL_ZOUT_H)
+        bits_low = self.read_data(RegisterMap.ACCEL_ZOUT_L)
+        combined_value = self.i2c.combine_bits(bits_high, bits_low)
+        
+        self.accel_z = combined_value/self.accel_fs        
+        
+    def read_gyro(self):
+        
+        self.read_accel_x()
+        self.read_accel_y()
+        self.read_accel_z()
+        
+    def selftest_gyro_x(self):
+        
+        self.gyro_config_set(1, 0, 0, 0)
+        self.read_gyro_x()
+        gyro_selftest_enabled = self.gyro_x
+        
+        self.gyro_config_set(0, 0, 0, 0)
+        self.read_gyro_x()
+        gyro_selftest_disabled = self.gyro_x
+        
+        STR = gyro_selftest_enabled - gyro_selftest_disabled
+        
+        data = self.read_data(RegisterMap.SELF_TEST_X)
+        XG_TEST = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[3:])
+        if XG_TEST == 0:
+            FT = 0 
+        else: FT = 25 * 131 * 1.046**(XG_TEST-1)
+        
+        deltaFT = (STR-FT)/FT*100
+        if deltaFT <= 14 and deltaFT >= -14:
+            print("delta FT for gyro x-axis", deltaFT, "%. Self Test OK!")
+        else: print("delta FT for gyro x-axis", deltaFT, "%. Self Test not passed!") 
+        
+    def selftest_gyro_y(self):
+        
+        self.gyro_config_set(0, 1, 0, 0)
+        self.read_gyro_y()
+        gyro_selftest_enabled = self.gyro_y
+        
+        self.gyro_config_set(0, 0, 0, 0)
+        self.read_gyro_y()
+        gyro_selftest_disabled = self.gyro_y
+        
+        STR = gyro_selftest_enabled - gyro_selftest_disabled
+        
+        data = self.read_data(RegisterMap.SELF_TEST_Y)
+        YG_TEST = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[3:])
+        if YG_TEST == 0:
+            FT = 0 
+        else: FT = - 25 * 131 * 1.046**(YG_TEST-1)
+        
+        deltaFT = (STR-FT)/FT*100
+        if deltaFT <= 14 and deltaFT >= -14:
+            print("delta FT for gyro y-axis", deltaFT, "%. Self Test OK!")
+        else: print("delta FT for gyro y-axis", deltaFT, "%. Self Test not passed!") 
+        
+    def selftest_gyro_z(self):
+        
+        self.gyro_config_set(0, 0, 1, 0)
+        self.read_gyro_z()
+        gyro_selftest_enabled = self.gyro_z
+        
+        self.gyro_config_set(0, 0, 0, 0)
+        self.read_gyro_z()
+        gyro_selftest_disabled = self.gyro_z
+        
+        STR = gyro_selftest_enabled - gyro_selftest_disabled
+        
+        data = self.read_data(RegisterMap.SELF_TEST_Z)
+        ZG_TEST = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[3:])
+        if ZG_TEST == 0:
+            FT = 0 
+        else: FT = - 25 * 131 * 1.046**(ZG_TEST-1)
+        
+        deltaFT = (STR-FT)/FT*100
+        if deltaFT <= 14 and deltaFT >= -14:
+            print("delta FT for gyro z-axis", deltaFT, "%. Self Test OK!")
+        else: print("delta FT for gyro z-axis", deltaFT, "%. Self Test not passed!") 
+        
+    def selftest_gyro(self):
+        
+        self.selftest_gyro_x()
+        self.selftest_gyro_y()
+        self.selftest_gyro_z()
+        
+    def selftest_accel_x(self):
+        
+        self.accel_config_set(1, 0, 0, 2)
+        self.read_accel_x()
+        accel_selftest_enabled = self.accel_x
+        
+        self.accel_config_set(0, 0, 0, 2)
+        self.read_accel_x()
+        accel_selftest_disabled = self.accel_x
+        
+        STR = accel_selftest_enabled - accel_selftest_disabled
+        
+        data = self.read_data(RegisterMap.SELF_TEST_X)
+        high_bits = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[:3])
+        data = self.read_data(RegisterMap.SELF_TEST_A)
+        low_bits = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[2:4])
+        
+        XA_TEST = self.i2c.combine_bits(high_bits, low_bits, num_bits=2)
+        if XA_TEST == 0:
+            FT = 0
+        else: FT = 4096 * 0.34 * 0.92/0.34 ** ((XA_TEST-1)/(2**5 - 2))
+        
+        deltaFT = (STR-FT)/FT*100
+        if deltaFT <= 14 and deltaFT >= -14:
+            print("delta FT for accel x-axis", deltaFT, "%. Self Test OK!")
+        else: print("delta FT for accel x-axis", deltaFT, "%. Self Test not passed!") 
+       
+    def selftest_accel_y(self):
+        
+        self.accel_config_set(0, 1, 0, 2)
+        self.read_accel_y()
+        accel_selftest_enabled = self.accel_y
+        
+        self.accel_config_set(0, 0, 0, 2)
+        self.read_accel_y()
+        accel_selftest_disabled = self.accel_y
+        
+        STR = accel_selftest_enabled - accel_selftest_disabled
+        
+        data = self.read_data(RegisterMap.SELF_TEST_Y)
+        high_bits = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[:3])
+        data = self.read_data(RegisterMap.SELF_TEST_A)
+        low_bits = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[2:4])
+        
+        YA_TEST = self.i2c.combine_bits(high_bits, low_bits, num_bits=2)
+        if YA_TEST == 0:
+            FT = 0
+        else: FT = 4096 * 0.34 * 0.92/0.34 ** ((YA_TEST-1)/(2**5 - 2))
+        
+        deltaFT = (STR-FT)/FT*100
+        if deltaFT <= 14 and deltaFT >= -14:
+            print("delta FT for accel y-axis", deltaFT, "%. Self Test OK!")
+        else: print("delta FT for accel y-axis", deltaFT, "%. Self Test not passed!") 
+        
+    def selftest_accel_z(self):
+        
+        self.accel_config_set(0, 1, 0, 2)
+        self.read_accel_z()
+        accel_selftest_enabled = self.accel_z
+        
+        self.accel_config_set(0, 0, 0, 2)
+        self.read_accel_z()
+        accel_selftest_disabled = self.accel_z
+        
+        STR = accel_selftest_enabled - accel_selftest_disabled
+        
+        data = self.read_data(RegisterMap.SELF_TEST_Z)
+        high_bits = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[:3])
+        data = self.read_data(RegisterMap.SELF_TEST_A)
+        low_bits = self.i2c.binary_string_to_int(self.i2c.int_to_binary_string(data, 8)[2:4])
+        
+        ZA_TEST = self.i2c.combine_bits(high_bits, low_bits, num_bits=2)
+        if ZA_TEST == 0:
+            FT = 0
+        else: FT = 4096 * 0.34 * 0.92/0.34 ** ((ZA_TEST-1)/(2**5 - 2))
+        
+        deltaFT = (STR-FT)/FT*100
+        if deltaFT <= 14 and deltaFT >= -14:
+            print("delta FT for accel z-axis", deltaFT, "%. Self Test OK!")
+        else: print("delta FT for accel z-axis", deltaFT, "%. Self Test not passed!") 
+        
+    def selftest_accel(self):
+        
+        self.selftest_accel_x()
+        self.selftest_accel_y()
+        self.selftest_accel_z()
+       
         
