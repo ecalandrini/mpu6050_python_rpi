@@ -1074,7 +1074,7 @@ class MPU6050:
             self.modify_register(RegisterMap.USER_CTRL, "1", 2)
     
     def pass_through_mode_get(self):
-        I2C_BYPASS_EN = self.read_data(RegisterMap.INT_PIN_CFG, "str")[8]
+        I2C_BYPASS_EN = self.read_data(RegisterMap.INT_PIN_CFG, "str")[6]
         I2C_MST_EN = self.read_data(RegisterMap.USER_CTRL, "str")[2]
         
         if I2C_BYPASS_EN == "1" and I2C_MST_EN == "0":
