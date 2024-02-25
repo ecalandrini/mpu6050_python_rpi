@@ -8,6 +8,7 @@ Created on Thu Feb 22 22:09:54 2024
 # sensor.py
 from i2c import I2CInterface
 from register_map import RegisterMap
+import numpy as np
 
 class MPU6050:
     """
@@ -108,12 +109,8 @@ class MPU6050:
         self.address = address
         self.i2c = I2CInterface(bus_number)
         self.sr = 0
-        self.gyro_x = 0
-        self.gyro_y = 0
-        self.gyro_z = 0
-        self.accel_x = 0
-        self.accel_y = 0
-        self.accel_z = 0
+        self.gyro = np.array([])
+        self.accel = np.array([])
         self.temp = 0
         self.gyro_fs = 0
         self.accel_fs = 0
@@ -716,7 +713,7 @@ class MPU6050:
 
         """
         raw_value = self.read_measurement(RegisterMap.GYRO_XOUT_H)
-        self.gyro_x = raw_value/self.gyro_fs
+        self.gyro[0] = raw_value/self.gyro_fs
 
     def read_gyro_y(self):
         """
@@ -728,7 +725,7 @@ class MPU6050:
 
         """
         raw_value = self.read_measurement(RegisterMap.GYRO_YOUT_H)
-        self.gyro_y = raw_value/self.gyro_fs
+        self.gyro[1] = raw_value/self.gyro_fs
 
     def read_gyro_z(self):
         """
@@ -740,7 +737,7 @@ class MPU6050:
 
         """
         raw_value = self.read_measurement(RegisterMap.GYRO_XOUT_H)
-        self.gyro_x = raw_value/self.gyro_fs        
+        self.gyro[2] = raw_value/self.gyro_fs        
         
     def read_gyro(self):
         """
@@ -777,7 +774,7 @@ class MPU6050:
 
         """
         raw_value = self.read_measurement(RegisterMap.ACCEL_XOUT_H)
-        self.accel_x = raw_value/self.accel_fs
+        self.accel[0] = raw_value/self.accel_fs
 
     def read_accel_y(self):
         """
@@ -789,7 +786,7 @@ class MPU6050:
 
         """
         raw_value = self.read_measurement(RegisterMap.ACCEL_YOUT_H)
-        self.accel_y = raw_value/self.accel_fs
+        self.accel[1] = raw_value/self.accel_fs
 
     def read_accel_z(self):
         """
@@ -801,7 +798,7 @@ class MPU6050:
 
         """
         raw_value = self.read_measurement(RegisterMap.ACCEL_ZOUT_H)
-        self.accel_z = raw_value/self.accel_fs       
+        self.accel[2] = raw_value/self.accel_fs       
         
     def read_accel(self):
         """
@@ -828,11 +825,11 @@ class MPU6050:
         """
         self.gyro_config_set(1, 0, 0, 0)
         self.read_gyro_x()
-        gyro_selftest_enabled = self.gyro_x
+        gyro_selftest_enabled = self.gyro[0]
         
         self.gyro_config_set(0, 0, 0, 0)
         self.read_gyro_x()
-        gyro_selftest_disabled = self.gyro_x
+        gyro_selftest_disabled = self.gyro[0]
         
         STR = gyro_selftest_enabled - gyro_selftest_disabled
         
@@ -859,11 +856,11 @@ class MPU6050:
         """        
         self.gyro_config_set(0, 1, 0, 0)
         self.read_gyro_y()
-        gyro_selftest_enabled = self.gyro_y
+        gyro_selftest_enabled = self.gyro[1]
         
         self.gyro_config_set(0, 0, 0, 0)
         self.read_gyro_y()
-        gyro_selftest_disabled = self.gyro_y
+        gyro_selftest_disabled = self.gyro[1]
         
         STR = gyro_selftest_enabled - gyro_selftest_disabled
         
@@ -890,11 +887,11 @@ class MPU6050:
         """
         self.gyro_config_set(0, 0, 1, 0)
         self.read_gyro_z()
-        gyro_selftest_enabled = self.gyro_z
+        gyro_selftest_enabled = self.gyro[2]
         
         self.gyro_config_set(0, 0, 0, 0)
         self.read_gyro_z()
-        gyro_selftest_disabled = self.gyro_z
+        gyro_selftest_disabled = self.gyro[2]
         
         STR = gyro_selftest_enabled - gyro_selftest_disabled
         
@@ -935,11 +932,11 @@ class MPU6050:
         """
         self.accel_config_set(1, 0, 0, 2)
         self.read_accel_x()
-        accel_selftest_enabled = self.accel_x
+        accel_selftest_enabled = self.accel[0]
         
         self.accel_config_set(0, 0, 0, 2)
         self.read_accel_x()
-        accel_selftest_disabled = self.accel_x
+        accel_selftest_disabled = self.accel[0]
         
         STR = accel_selftest_enabled - accel_selftest_disabled
         
@@ -970,11 +967,11 @@ class MPU6050:
         """
         self.accel_config_set(0, 1, 0, 2)
         self.read_accel_y()
-        accel_selftest_enabled = self.accel_y
+        accel_selftest_enabled = self.accel[1]
         
         self.accel_config_set(0, 0, 0, 2)
         self.read_accel_y()
-        accel_selftest_disabled = self.accel_y
+        accel_selftest_disabled = self.accel[1]
         
         STR = accel_selftest_enabled - accel_selftest_disabled
         
@@ -1005,11 +1002,11 @@ class MPU6050:
         """
         self.accel_config_set(0, 1, 0, 2)
         self.read_accel_z()
-        accel_selftest_enabled = self.accel_z
+        accel_selftest_enabled = self.accel[2]
         
         self.accel_config_set(0, 0, 0, 2)
         self.read_accel_z()
-        accel_selftest_disabled = self.accel_z
+        accel_selftest_disabled = self.accel[2]
         
         STR = accel_selftest_enabled - accel_selftest_disabled
         
@@ -1043,4 +1040,17 @@ class MPU6050:
         self.selftest_accel_y()
         self.selftest_accel_z()
        
+    def temp_get(self):
         
+        self.read_temperature()
+        print("Temperature: ºC", self.temp)
+        
+    def gyro_get(self):
+        
+        self.read_gyro()
+        print("Gyro: º/s", self.gyro)
+        
+    def accel_get(self):
+        
+        self.read_accel()
+        print("Accel: g", self.accel)

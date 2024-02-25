@@ -14,3 +14,7 @@ sensor.sample_rate_get()
 sensor.config_get()
 sensor.gyro_config_get()
 sensor.accel_config_get()
+
+sensor.temp_get()
+sensor.gyro_get()
+sensor.accel_get()
