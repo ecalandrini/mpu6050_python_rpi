@@ -109,8 +109,8 @@ class MPU6050:
         self.address = address
         self.i2c = I2CInterface(bus_number)
         self.sr = 0
-        self.gyro = np.array([])
-        self.accel = np.array([])
+        self.gyro = np.empty(3)
+        self.accel = np.empty(3)
         self.temp = 0
         self.gyro_fs = 0
         self.accel_fs = 0
