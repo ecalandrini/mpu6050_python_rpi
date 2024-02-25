@@ -161,8 +161,9 @@ class MPU6050:
         
         value = {
             "int" : data,
-            "str" : data_bitstring}
-        return value
+            "str" : data_bitstring
+            }
+        return value[output]
     
     def write_data(self, register, value):
         """
