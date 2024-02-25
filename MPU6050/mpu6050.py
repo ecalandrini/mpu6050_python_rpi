@@ -10,6 +10,100 @@ from i2c import I2CInterface
 from register_map import RegisterMap
 
 class MPU6050:
+    """
+    Class for the MPU6050 sensor
+    
+    Attributes
+    ----------
+    address : hex
+        address of the MPU6050 sensor.
+    sr : float
+        Sample rate in kHz.
+    gyro_fs : float
+        Full scale range of the gyro.
+    accel_fs : float
+        Full scale range of the accel.
+    gyro_i : float
+        Last measurement of the gyro i-axis.
+    accel_i : float
+        Last measurement of the accel i-axis.
+    temp : float
+        Last measurement of the temperature.
+        
+    Methods
+    -------
+    read_measurement:
+        
+    read_data:
+        
+    write_data:
+    
+    modify_register:
+        
+    sample_rate_get:
+        
+    sample_rate_set:
+        
+    config_get:
+    
+    config_set:
+        
+    gyro_config_get:
+        
+    gyro_config_set:
+        
+    accel_config_get:
+        
+    accel_config_set:
+        
+    who_am_i:
+        
+    wakeup:
+    
+    sleep:
+        
+    reset:
+        
+    cycle:
+        
+    temp_disable:
+        
+    temp_enable:
+        
+    read_gyro_i:
+        
+    read_gyro:
+        
+    read_accel_i:
+    
+    read_accel:
+        
+    selftest_gyro_i:
+        
+    selftest_gyro:
+    
+    selftest_accel_i:
+        
+    selftest_accel:
+    
+    standby_gyro_i_on:
+        
+    standby_gyro_on:
+        
+    standby_gyro_i_off:
+        
+    standby_gyro_off:
+        
+    standby_accel_i_on:
+        
+    standby_accel_on:
+        
+    standby_accel_i_off:
+        
+    standby_accel_off:
+        
+    mode_AOLP:
+    """
     def __init__(self, address, bus_number=1):
         self.address = address
         self.i2c = I2CInterface(bus_number)
@@ -23,6 +117,31 @@ class MPU6050:
         self.temp = 0
         self.gyro_fs = 0
         self.accel_fs = 0
+        
+    def read_measurement(self, register):
+        """
+        Function to read a 16-bit measurement.
+        It reads two register and combine the result.
+
+        Parameters
+        ----------
+        register : hex
+            first register to read.
+
+        Returns
+        -------
+        int
+            combined read result.
+
+        """        
+        high_byte = self.i2c.read_byte(self.address, register)
+        low_byte = self.i2c.read_byte(self.address, register+1)
+        
+        value = (high_byte << 8) | low_byte
+        
+        if (value >= 0x8000):
+            return -((65535 - value) + 1)
+        else: return value
 
     def read_data(self, register):
         """
@@ -42,7 +161,7 @@ class MPU6050:
 
         """
         # Example: Read data from a specific register of the sensor
-        data = self.i2c.read_byte_data(self.address, register)
+        data = self.i2c.read_byte(self.address, register)
         return data
     
     def write_data(self, register, value):
@@ -59,43 +178,35 @@ class MPU6050:
 
         Returns
         -------
-        data : int
-            Read byte as int. 
-            To be trnasformed as a 8-bit string.
+        None.
 
         """
         # Example: Read data from a specific register of the sensor
-        self.i2c.write_byte_data(self.address, register, value)
+        self.i2c.write_byte(self.address, register, value)
         
-    def modify_string(self, original_string, new_string, position):
+    def modify_register(self, register, value, position):
         """
-        Function to modify a portion of bits in a bit string
-        Example: original string = "00000"
-                new string = "11"
-                position = 2
-                Result = "00110"
+        Function to modify a bit or a group of contiguous bits in a register.
 
         Parameters
         ----------
-        original_string : str
-            original bit string.
-        new_string : str
-            bit string to modify.
+        register : hex
+            Address of the register to modify.
+        value : str
+            new bit string to write in the register.
         position : int
-            position of the first bit to modify in the original_string.
+            position of the firts bit to modify.
 
         Returns
         -------
-        str
-            modified bit string.
+        None.
 
         """
-        if position < 0 or position >= len(self):
-            print("Invalid position.")
-        elif position + len(new_string) > original_string:
-            print("Invalid length")
-        else:
-            return original_string[:position] + new_string + original_string[position + len(new_string):]
+        data = self.read_data(register)
+        bit_string = self.i2c.int_to_binary_string(data, 8)
+        new_string = self.i2c.modify_bit_string(bit_string, value, position)
+        new_data = self.i2c.binary_string_to_int(new_string)
+        self.write_data(register, new_data)
 
     def calibrate(self):
         # Example: Write calibration data to a specific register of the sensor
@@ -116,8 +227,10 @@ class MPU6050:
         divider = self.read_data(RegisterMap.SMPLRT_DIV)
         
         # calculate the sample rate
-        dlpf = int(self.i2c.int_to_binary_string(self.read_data(RegisterMap.CONFIG), 8)[-3:], 2)
-        if dlpf == 0 or dlpf == 7:
+        data = self.read_data(RegisterMap.CONFIG)
+        DLPF_CFG = self.i2c.int_to_binary_string(data, 8)[-3:]
+        DLPF = self.i2c.binary_string_to_int(DLPF_CFG)
+        if DLPF == 0 or DLPF == 7:
             self.sr = 8/(1+divider)
         else: self.sr = 1/(1+divider)
                 
@@ -140,22 +253,24 @@ class MPU6050:
         None.
 
         """
-        
         # calculate the sample rate
-        dlpf = int(self.i2c.int_to_binary_string(self.read_data(RegisterMap.CONFIG), 8)[-3:], 2)
-        if dlpf == 0 or dlpf == 7:
+        data = self.read_data(RegisterMap.CONFIG)
+        DLPF_CFG = self.i2c.int_to_binary_string(data, 8)[-3:]
+        DLPF = self.i2c.binary_string_to_int(DLPF_CFG)
+        if DLPF == 0 or DLPF == 7:
             self.sr = 8/(1+divider)
         else: self.sr = 1/(1+divider)
                 
         # calculate the new value
         divider_bits = self.i2c.int_to_binary_string(divider, 8)
+        self.write_data(RegisterMap.SMPLRT_DIV, divider)
         print("New Configuration", divider_bits)
         print("Sample rate is", self.sr, "kHz")
         
         # write in the register
         self.write_data(RegisterMap.SMPLRT_DIV, divider)
 
-    def config_get(self, DLPF_CFG, EXT_SYNC_SET=0):
+    def config_get(self):
         """
         Getter function for the external Frame Synchronization (FSYNC) pin sampling and the Digital
         Low Pass Filter (DLPF) setting for both the gyroscopes and accelerometers.
@@ -169,13 +284,6 @@ class MPU6050:
         # read the register
         data = self.read_data(RegisterMap.CONFIG)
         print("Present Configuration", self.i2c.int_to_binary_string(data, 8))
-        
-        # calculate the new value
-        new_value = "00" + self.i2c.int_to_binary_string(EXT_SYNC_SET, 3) + self.i2c.int_to_binary_string(DLPF_CFG, 3) 
-        print("New Configuration", new_value)
-        
-        # write in the register
-        self.write_data(RegisterMap.CONFIG, self.i2c.binary_string_to_int(new_value))
         
     def config_set(self, DLPF_CFG, EXT_SYNC_SET=0):
         """
@@ -200,11 +308,12 @@ class MPU6050:
         print("Present Configuration", self.i2c.int_to_binary_string(data, 8))
         
         # calculate the new value
-        new_value = "00" + self.i2c.int_to_binary_string(EXT_SYNC_SET, 3) + self.i2c.int_to_binary_string(DLPF_CFG, 3) 
-        print("New Configuration", new_value)
+        value = self.i2c.int_to_binary_string(EXT_SYNC_SET, 3) + self.i2c.int_to_binary_string(DLPF_CFG, 3) 
+        new_bitstring = self.modify_register(RegisterMap.CONFIG, value, 2)
+        print("New Configuration", new_bitstring)
         
         # write in the register
-        self.write_data(RegisterMap.CONFIG, self.i2c.binary_string_to_int(new_value))
+        self.write_data(RegisterMap.CONFIG, self.i2c.binary_string_to_int(new_bitstring))
         
     def gyro_config_get(self):
         """
@@ -216,14 +325,13 @@ class MPU6050:
         None.
 
         """
-
         data = self.read_data(RegisterMap.GYRO_CONFIG)
         bit_string = self.i2c.int_to_binary_string(data, 8)
         XG_ST = bit_string[0]
         YG_ST = bit_string[1]
         ZG_ST = bit_string[2]
         FS_SEL = self.i2c.binary_string_to_int(bit_string[3:5])
-        self.gyro_fs = FS_SEL
+        self.gyro_fs = 250*2**FS_SEL
         print("Self-Test activated on axis (x, y, z)", XG_ST, YG_ST, ZG_ST)
         print("Gyro full scale range +/-", 250*2**FS_SEL, "º/s")
         
@@ -272,7 +380,7 @@ class MPU6050:
         YA_ST = bit_string[1]
         ZA_ST = bit_string[2]
         AFS_SEL = self.i2c.binary_string_to_int(bit_string[3:5])
-        self.accel_fs = AFS_SEL
+        self.accel_fs = 2**(AFS_SEL+1)
         
         print("Self-Test activated on axis (x, y, z)", XA_ST, YA_ST, ZA_ST)
         print("Gyro full scale range +/-", 2**(AFS_SEL+1), "g")
@@ -299,10 +407,9 @@ class MPU6050:
         None.
 
         """
-        
         bit_string = str(XA_ST) + str(YA_ST) + str(ZA_ST) + self.i2c.int_to_binary_string(AFS_SEL, 2) + "000"
         self.write_data(RegisterMap.ACCEL_CONFIG, self.i2c.binary_string_to_int(bit_string))
-        self.accel_fs = AFS_SEL
+        self.accel_fs = 2**(AFS_SEL+1)
         
         print("Activation of Self-Test on Accel axis (x, y, z)", XA_ST, YA_ST, ZA_ST)
         print("Setting the Accel full scale range +/-", 2**(AFS_SEL+1), "g")
@@ -333,7 +440,7 @@ class MPU6050:
         None.
 
         """
-        self.write_data(RegisterMap.PWR_MGMT_1, 0)
+        self.modify_register(RegisterMap.PWR_MGMT_1, "0", 1)
         
     def sleep(self):
         """
@@ -344,7 +451,7 @@ class MPU6050:
         None.
 
         """
-        self.write_data(RegisterMap.PWR_MGMT_1, self.i2c.binary_string_to_int("01000000"))
+        self.modify_register(RegisterMap.PWR_MGMT_1, "1", 1)
         
     def reset(self):
         """
@@ -355,9 +462,9 @@ class MPU6050:
         None.
 
         """
-        self.write_data(RegisterMap.PWR_MGMT_1, self.i2c.binary_string_to_int("10000000"))
+        self.modify_register(RegisterMap.PWR_MGMT_1, "1", 0)
 
-    def cycle(self, LP_WAKE_CTRL):
+    def cycle_enable(self, LP_WAKE_CTRL=0):
         """
         Function to activate the cycle mode of the MPU6050.
 
@@ -371,9 +478,9 @@ class MPU6050:
         None.
 
         """
-        data = self.i2c.int_to_binary_string(LP_WAKE_CTRL, 2)+"000000"
-        self.write_data(RegisterMap.PWR_MGMT_1, self.i2c.binary_string_to_int("00100000"))
-        self.write_data(RegisterMap.PWR_MGMT_2, self.i2c.binary_string_to_int(data))
+        self.modify_register(RegisterMap.PWR_MGMT_1, "1", 2)
+        data = self.i2c.int_to_binary_string(LP_WAKE_CTRL, 2)
+        self.modify_register(RegisterMap.PWR_MGMT_2, data, 0)
         
     def temp_disable(self):
         """
@@ -384,10 +491,7 @@ class MPU6050:
         None.
 
         """
-        
-        data = self.read_data(RegisterMap.PWR_MGMT_1)
-        bin_string = self.i2c.int_to_binary_string(data, 8)
-        new_string = self.modify_string(bin_string, "1", 4)
+        self.modify_register(RegisterMap.PWR_MGMT_1, "1", 4)
         print("Temperature Sensor disabled")
         
     def temp_enable(self):
@@ -399,11 +503,207 @@ class MPU6050:
         None.
 
         """
-        
-        data = self.read_data(RegisterMap.PWR_MGMT_1)
-        bin_string = self.i2c.int_to_binary_string(data, 8)
-        new_string = self.modify_string(bin_string, "0", 4)
+        self.modify_register(RegisterMap.PWR_MGMT_1, "0", 4)
         print("Temperature Sensor enabled")
+    
+    def standby_accel_x_on(self):
+        """
+        Function to set the accel x-axis in standby mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "1", 2)
+        
+    def standby_accel_y_on(self):
+        """
+        Function to set the accel y-axis in standby mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "1", 3)
+ 
+    def standby_accel_z_on(self):
+        """
+        Function to set the accel z-axis in standby mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "1", 4)
+        
+    def standby_accel_on(self):
+        """
+        Function to set the accel in standby mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.standby_accel_x_on()
+        self.standby_accel_y_on()
+        self.standby_accel_z_on()
+    
+    def standby_accel_x_off(self):
+        """
+        Function to disable the standby mode on the accel x-axis.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "0", 2)
+        
+    def standby_accel_y_off(self):
+        """
+        Function to disable the standby mode on the accel y-axis.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "0", 3)
+ 
+    def standby_accel_z_off(self):
+        """
+        Function to disable the standby mode on the accel z-axis.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "0", 4)
+        
+    def standby_accel_off(self):
+        """
+        Function to disable the standby mode on the accel.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.standby_accel_x_off()
+        self.standby_accel_y_off()
+        self.standby_accel_z_off()
+        
+    def standby_gyro_x_on(self):
+        """
+        Function to set the gyro x-axis in standby mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "1", 5)
+        
+    def standby_gyro_y_on(self):
+        """
+        Function to set the gyro y-axis in standby mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "1", 6)
+ 
+    def standby_gyro_z_on(self):
+        """
+        Function to set the gyro z-axis in standby mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "1", 7)
+        
+    def standby_gyro_on(self):
+        """
+        Function to set the gyro in standby mode.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.standby_gyro_x_on()
+        self.standby_gyro_y_on()
+        self.standby_gyro_z_on()
+    
+    def standby_gyro_x_off(self):
+        """
+        Function to disable the standby mode on the gyro x-axis.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "0", 5)
+        
+    def standby_gyro_y_off(self):
+        """
+        Function to disable the standby mode on the gyro y-axis.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "0", 6)
+ 
+    def standby_gyro_z_off(self):
+        """
+        Function to disable the standby mode on the gyro z-axis.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.modify_register(RegisterMap.PWR_MGMT_2, "0", 7)
+        
+    def standby_gyro_off(self):
+        """
+        Function to disable the standby mode on the gyro.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.standby_gyro_x_off()
+        self.standby_gyro_y_off()
+        self.standby_gyro_z_off()
+        
+    def mode_AOLP(self):
+        """
+        Function to put the MPU6050 in the Accelerometer Only Low Power mode.
+        See register 108 for more information.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.cycle_enable()
+        self.wakeup()
+        self.temp_disable()
+        self.standby_gyro_on()
         
     def read_gyro_x(self):
         """
@@ -414,12 +714,8 @@ class MPU6050:
         None.
 
         """
-        
-        bits_high = self.read_data(RegisterMap.GYRO_XOUT_H)
-        bits_low = self.read_data(RegisterMap.GYRO_XOUT_L)
-        combined_value = self.i2c.combine_bits(bits_high, bits_low)
-        
-        self.gyro_x = combined_value/self.gyro_fs
+        raw_value = self.read_measurement(RegisterMap.GYRO_XOUT_H)
+        self.gyro_x = raw_value/self.gyro_fs
 
     def read_gyro_y(self):
         """
@@ -430,12 +726,8 @@ class MPU6050:
         None.
 
         """
-        
-        bits_high = self.read_data(RegisterMap.GYRO_YOUT_H)
-        bits_low = self.read_data(RegisterMap.GYRO_YOUT_L)
-        combined_value = self.i2c.combine_bits(bits_high, bits_low)
-        
-        self.gyro_y = combined_value/self.gyro_fs
+        raw_value = self.read_measurement(RegisterMap.GYRO_YOUT_H)
+        self.gyro_y = raw_value/self.gyro_fs
 
     def read_gyro_z(self):
         """
@@ -446,12 +738,8 @@ class MPU6050:
         None.
 
         """
-        
-        bits_high = self.read_data(RegisterMap.GYRO_ZOUT_H)
-        bits_low = self.read_data(RegisterMap.GYRO_ZOUT_L)
-        combined_value = self.i2c.combine_bits(bits_high, bits_low)
-        
-        self.gyro_x = combined_value/self.gyro_fs        
+        raw_value = self.read_measurement(RegisterMap.GYRO_XOUT_H)
+        self.gyro_x = raw_value/self.gyro_fs        
         
     def read_gyro(self):
         """
@@ -462,7 +750,6 @@ class MPU6050:
         None.
 
         """
-        
         self.read_gyro_x()
         self.read_gyro_y()
         self.read_gyro_z()
@@ -476,13 +763,8 @@ class MPU6050:
         None.
     
         """
-        
-        bits_high = self.read_data(RegisterMap.TEMP_OUT_H)
-        bits_low = self.read_data(RegisterMap.TEMP_OUT_L)
-        combined_value = self.i2c.combine_bits(bits_high, bits_low)
-        signed_value = self.i2c.convert_to_signed(combined_value, 16)
-       
-        self.temp = signed_value/340 + 36.53
+        raw_temp = self.read_measurement(RegisterMap.TEMP_OUT_H)
+        self.temp = raw_temp/340 + 36.53
        
     def read_accel_x(self):
         """
@@ -493,12 +775,8 @@ class MPU6050:
         None.
 
         """
-        
-        bits_high = self.read_data(RegisterMap.ACCEL_XOUT_H)
-        bits_low = self.read_data(RegisterMap.ACCEL_XOUT_L)
-        combined_value = self.i2c.combine_bits(bits_high, bits_low)
-        
-        self.accel_x = combined_value/self.accel_fs
+        raw_value = self.read_measurement(RegisterMap.ACCEL_XOUT_H)
+        self.accel_x = raw_value/self.accel_fs
 
     def read_accel_y(self):
         """
@@ -509,12 +787,8 @@ class MPU6050:
         None.
 
         """
-        
-        bits_high = self.read_data(RegisterMap.ACCEL_YOUT_H)
-        bits_low = self.read_data(RegisterMap.ACCEL_YOUT_L)
-        combined_value = self.i2c.combine_bits(bits_high, bits_low)
-        
-        self.accel_y = combined_value/self.accel_fs
+        raw_value = self.read_measurement(RegisterMap.ACCEL_YOUT_H)
+        self.accel_y = raw_value/self.accel_fs
 
     def read_accel_z(self):
         """
@@ -525,12 +799,8 @@ class MPU6050:
         None.
 
         """
-        
-        bits_high = self.read_data(RegisterMap.ACCEL_ZOUT_H)
-        bits_low = self.read_data(RegisterMap.ACCEL_ZOUT_L)
-        combined_value = self.i2c.combine_bits(bits_high, bits_low)
-        
-        self.accel_z = combined_value/self.accel_fs        
+        raw_value = self.read_measurement(RegisterMap.ACCEL_ZOUT_H)
+        self.accel_z = raw_value/self.accel_fs       
         
     def read_accel(self):
         """
@@ -541,13 +811,20 @@ class MPU6050:
         None.
 
         """
-        
         self.read_accel_x()
         self.read_accel_y()
         self.read_accel_z()
         
     def selftest_gyro_x(self):
-        
+        """
+        Function to perform the self test on the gyro x-axis.
+        See Register 11-16 for more information.
+
+        Returns
+        -------
+        None.
+
+        """
         self.gyro_config_set(1, 0, 0, 0)
         self.read_gyro_x()
         gyro_selftest_enabled = self.gyro_x
@@ -571,12 +848,14 @@ class MPU6050:
         
     def selftest_gyro_y(self):
         """
-        Function to perform the self test of the gyro y-axis.
-        :return: None
-        :rtype: None
+        Function to perform the self test on the gyro y-axis.
+        See Register 11-16 for more information.
 
-        """
-        
+        Returns
+        -------
+        None.
+
+        """        
         self.gyro_config_set(0, 1, 0, 0)
         self.read_gyro_y()
         gyro_selftest_enabled = self.gyro_y
@@ -599,7 +878,15 @@ class MPU6050:
         else: print("delta FT for gyro y-axis", deltaFT, "%. Self Test not passed!") 
         
     def selftest_gyro_z(self):
-        
+        """
+        Function to perform the self test on the gyro y-axis.
+        See Register 11-16 for more information.
+
+        Returns
+        -------
+        None.
+
+        """
         self.gyro_config_set(0, 0, 1, 0)
         self.read_gyro_z()
         gyro_selftest_enabled = self.gyro_z
@@ -622,13 +909,29 @@ class MPU6050:
         else: print("delta FT for gyro z-axis", deltaFT, "%. Self Test not passed!") 
         
     def selftest_gyro(self):
-        
+        """
+        Function to perform the self test on all the gyro axis.
+        See Register 11-16 for more information.
+
+        Returns
+        -------
+        None.
+
+        """   
         self.selftest_gyro_x()
         self.selftest_gyro_y()
         self.selftest_gyro_z()
         
     def selftest_accel_x(self):
-        
+        """
+        Function to perform the self test on the accel x-axis.
+        See Register 11-16 for more information.
+
+        Returns
+        -------
+        None.
+
+        """
         self.accel_config_set(1, 0, 0, 2)
         self.read_accel_x()
         accel_selftest_enabled = self.accel_x
@@ -655,7 +958,15 @@ class MPU6050:
         else: print("delta FT for accel x-axis", deltaFT, "%. Self Test not passed!") 
        
     def selftest_accel_y(self):
-        
+        """
+        Function to perform the self test on the accel y-axis.
+        See Register 11-16 for more information.
+
+        Returns
+        -------
+        None.
+
+        """
         self.accel_config_set(0, 1, 0, 2)
         self.read_accel_y()
         accel_selftest_enabled = self.accel_y
@@ -682,7 +993,15 @@ class MPU6050:
         else: print("delta FT for accel y-axis", deltaFT, "%. Self Test not passed!") 
         
     def selftest_accel_z(self):
-        
+        """
+        Function to perform the self test on the accel z-axis.
+        See Register 11-16 for more information.
+
+        Returns
+        -------
+        None.
+
+        """
         self.accel_config_set(0, 1, 0, 2)
         self.read_accel_z()
         accel_selftest_enabled = self.accel_z
@@ -710,6 +1029,15 @@ class MPU6050:
         
     def selftest_accel(self):
         
+        """
+        Function to perform the self test on all the accel axis.
+        See Register 11-16 for more information.
+
+        Returns
+        -------
+        None.
+
+        """
         self.selftest_accel_x()
         self.selftest_accel_y()
         self.selftest_accel_z()

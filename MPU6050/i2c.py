@@ -150,4 +150,34 @@ class I2CInterface:
         combined_value = (high_bits << num_bits) | low_bits
       
         return combined_value
+    
+    def modify_bit_string(self, original_string, new_string, position):
+        """
+        Function to modify a portion of bits in a bit string
+        Example: original string = "00000"
+                new string = "11"
+                position = 2
+                Result = "00110"
+
+        Parameters
+        ----------
+        original_string : str
+            original bit string.
+        new_string : str
+            bit string to modify.
+        position : int
+            position of the first bit to modify in the original_string.
+
+        Returns
+        -------
+        str
+            modified bit string.
+
+        """
+        if position < 0 or position >= len(self):
+            print("Invalid position.")
+        elif position + len(new_string) > original_string:
+            print("Invalid length")
+        else:
+            return original_string[:position] + new_string + original_string[position + len(new_string):]
 
