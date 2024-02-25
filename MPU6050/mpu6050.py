@@ -134,8 +134,8 @@ class MPU6050:
         high_byte = self.i2c.read_byte(self.address, register)
         low_byte = self.i2c.read_byte(self.address, register+1)
         
-        print(high_byte, low_byte)
         value = (high_byte << 8) | low_byte
+        print(high_byte, low_byte, value)
         
         if (value >= 0x8000):
             return -((65535 - value) + 1)
@@ -737,7 +737,7 @@ class MPU6050:
         None.
 
         """
-        raw_value = self.read_measurement(RegisterMap.GYRO_XOUT_H)
+        raw_value = self.read_measurement(RegisterMap.GYRO_ZOUT_H)
         self.gyro[2] = raw_value/self.gyro_fs        
         
     def read_gyro(self):
