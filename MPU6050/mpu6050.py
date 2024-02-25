@@ -207,6 +207,7 @@ class MPU6050:
         bit_string = self.i2c.int_to_binary_string(data, 8)
         new_string = self.i2c.modify_bit_string(bit_string, value, position)
         new_data = self.i2c.binary_string_to_int(new_string)
+        print("Modifying register:", register, ":", bit_string, "->", new_string)
         self.write_data(register, new_data)
 
     def calibrate(self):
@@ -1062,3 +1063,12 @@ class MPU6050:
         self.read_accel()
         print("Accel: g", self.accel)
         return self.accel
+    
+    def pass_through_mode(self, state):
+        
+        if state == True:
+            self.modify_register(RegisterMap.INT_PIN_CFG, "1", 8)
+            self.modify_register(RegisterMap.USER_CTRL, "0", 2)
+        else: 
+            self.modify_register(RegisterMap.INT_PIN_CFG, "0", 8)
+            self.modify_register(RegisterMap.USER_CTRL, "1", 2)
