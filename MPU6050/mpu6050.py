@@ -426,7 +426,7 @@ class MPU6050:
         """
         data = self.read_data(RegisterMap.WHO_AM_I)
         bit_string = self.i2c.int_to_binary_string(data, 8)[1:-1]
-        new_value = hex(self.binary_string_to_int(bit_string))
+        new_value = hex(self.i2c.binary_string_to_int(bit_string))
         if new_value == 0x68:
             print("I'm a MPU-6050!")
         else: print("I'm not a MPU-6050 :(, my name is", new_value)
@@ -440,11 +440,12 @@ class MPU6050:
         None.
 
         """
+        print("MPU6050 is ON")
         self.modify_register(RegisterMap.PWR_MGMT_1, "0", 1)
         
     def sleep(self):
         """
-        Function to wake up the MPU6050.
+        Function to turnoff up the MPU6050.
 
         Returns
         -------
