@@ -140,26 +140,29 @@ class MPU6050:
             return -((65535 - value) + 1)
         else: return value
 
-    def read_data(self, register):
-        """
-        Function to read a register.
-        Wrapper function of the "read_byte_data".
-
+    def read_data(self, register, output="int"):
+        """       
         Parameters
         ----------
-        register : Hex
-            Address of the register to be read.
+        register : hex
+            Address of the register to read.
+        output : str, optional
+            type of the function output. The default is "int".
 
         Returns
         -------
-        data : int
-            Read byte as int. 
-            To be trnasformed as a 8-bit string.
+        value : dict
+            The function return an int by default or a 8-bit string if output is "str".
 
         """
         # Example: Read data from a specific register of the sensor
         data = self.i2c.read_byte(self.address, register)
-        return data
+        data_bitstring = self.i2c.int_to_binary_string(data, 8)
+        
+        value = {
+            "int" : data,
+            "str" : data_bitstring}
+        return value
     
     def write_data(self, register, value):
         """
