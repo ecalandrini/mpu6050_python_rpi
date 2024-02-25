@@ -135,7 +135,6 @@ class MPU6050:
         low_byte = self.i2c.read_byte(self.address, register+1)
         
         value = (high_byte << 8) | low_byte
-        print(high_byte, low_byte, value)
         
         if (value >= 0x8000):
             return -((65535 - value) + 1)
@@ -1046,13 +1045,16 @@ class MPU6050:
         
         self.read_temperature()
         print("Temperature: ºC", self.temp)
+        return self.temp 
         
     def gyro_get(self):
         
         self.read_gyro()
         print("Gyro: º/s", self.gyro)
+        return self.gyro
         
     def accel_get(self):
         
         self.read_accel()
         print("Accel: g", self.accel)
+        return self.accel

@@ -15,6 +15,19 @@ sensor.config_get()
 sensor.gyro_config_get()
 sensor.accel_config_get()
 
-sensor.temp_get()
-sensor.gyro_get()
-sensor.accel_get()
+t = sensor.temp_get()
+gy = sensor.gyro_get()
+a = sensor.accel_get()
+
+for i in range(200):
+    print(i)
+    sensor.temp_get()
+    sensor.gyro_get()
+    sensor.accel_get()
+    if i >= 100:
+        t += sensor.temp_get()
+        gy += sensor.gyro_get()
+        a += sensor.accel_get()
+        
+print("values", t, gy, a)
+print("mean", t/100, gy/100, a/100)
