@@ -383,7 +383,7 @@ class MPU6050:
         self.accel_fs = 2**(AFS_SEL+1)
         
         print("Self-Test activated on axis (x, y, z)", XA_ST, YA_ST, ZA_ST)
-        print("Gyro full scale range +/-", 2**(AFS_SEL+1), "g")
+        print("Accel full scale range +/-", 2**(AFS_SEL+1), "g")
         
     def accel_config_set(self, XA_ST, YA_ST, ZA_ST, AFS_SEL):
         """
