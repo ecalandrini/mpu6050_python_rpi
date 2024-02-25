@@ -134,6 +134,7 @@ class MPU6050:
         high_byte = self.i2c.read_byte(self.address, register)
         low_byte = self.i2c.read_byte(self.address, register+1)
         
+        print(high_byte, low_byte)
         value = (high_byte << 8) | low_byte
         
         if (value >= 0x8000):
