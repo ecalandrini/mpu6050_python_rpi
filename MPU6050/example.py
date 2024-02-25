@@ -25,9 +25,9 @@ for i in range(200):
     sensor.gyro_get()
     sensor.accel_get()
     if i >= 100:
-        t += sensor.temp_get()
-        gy += sensor.gyro_get()
-        a += sensor.accel_get()
+        t += sensor.temp
+        gy += sensor.gyro
+        a += sensor.accel
         
 print("values", t, gy, a)
 print("mean", t/100, gy/100, a/100)
