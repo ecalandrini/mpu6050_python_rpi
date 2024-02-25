@@ -11,6 +11,8 @@ import numpy as np
 
 sensor = MPU6050(0x68)
 sensor.wakeup()
+sensor.write_data(0x37, 2)
+sensor.write_data(0x6A, 0)
 sensor.who_am_i()
 sensor.sample_rate_get()
 sensor.config_get()
