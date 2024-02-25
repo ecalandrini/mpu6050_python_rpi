@@ -18,6 +18,8 @@ sensor.gyro_config_get()
 sensor.accel_config_get()
 
 sensor.read_data(RegisterMap.USER_CTRL, output="str")
+sensor.read_data(RegisterMap.INT_PIN_CFG, output="str")
+sensor.pass_through_mode_get()
 
 # t = []
 # gy = []

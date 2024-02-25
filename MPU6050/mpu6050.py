@@ -1064,11 +1064,20 @@ class MPU6050:
         print("Accel: g", self.accel)
         return self.accel
     
-    def pass_through_mode(self, state):
+    def pass_through_mode_set(self, state):
         
         if state == True:
-            self.modify_register(RegisterMap.INT_PIN_CFG, "1", 8)
+            self.modify_register(RegisterMap.INT_PIN_CFG, "1", 6)
             self.modify_register(RegisterMap.USER_CTRL, "0", 2)
         else: 
-            self.modify_register(RegisterMap.INT_PIN_CFG, "0", 8)
+            self.modify_register(RegisterMap.INT_PIN_CFG, "0", 6)
             self.modify_register(RegisterMap.USER_CTRL, "1", 2)
+    
+    def pass_through_mode_get(self):
+        I2C_BYPASS_EN = self.read_data(RegisterMap.INT_PIN_CFG, "str")[8]
+        I2C_MST_EN = self.read_data(RegisterMap.USER_CTRL, "str")[2]
+        
+        if I2C_BYPASS_EN == "1" and I2C_MST_EN == "0":
+            print("Pass-Through Mode Enabled")
+        if I2C_BYPASS_EN == "0":
+            print("Pass-Through Mode Disabled")
