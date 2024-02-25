@@ -174,9 +174,9 @@ class I2CInterface:
             modified bit string.
 
         """
-        if position < 0 or position >= len(self):
+        if position < 0 or position >= len(original_string):
             print("Invalid position.")
-        elif position + len(new_string) > original_string:
+        elif position + len(new_string) > len(original_string):
             print("Invalid length")
         else:
             return original_string[:position] + new_string + original_string[position + len(new_string):]
