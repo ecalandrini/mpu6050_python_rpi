@@ -427,8 +427,7 @@ class MPU6050:
         data = self.read_data(RegisterMap.WHO_AM_I)
         bit_string = self.i2c.int_to_binary_string(data, 8)
         new_value = hex(self.i2c.binary_string_to_int(bit_string))
-        print(data, bit_string, new_value)
-        if new_value == 0x68:
+        if new_value == '0x68':
             print("I'm a MPU-6050!")
         else: print("I'm not a MPU-6050 :(, my name is", new_value)
         
