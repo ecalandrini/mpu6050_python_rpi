@@ -329,7 +329,8 @@ class MPU6050:
         YG_ST = bit_string[1]
         ZG_ST = bit_string[2]
         FS_SEL = self.i2c.binary_string_to_int(bit_string[3:5])
-        self.gyro_fs = 250*2**FS_SEL
+        self.gyro_fs = RegisterMap.GYRO_LSB[FS_SEL]
+        
         print("Self-Test activated on axis (x, y, z)", XG_ST, YG_ST, ZG_ST)
         print("Gyro full scale range +/-", 250*2**FS_SEL, "º/s")
         
@@ -356,7 +357,7 @@ class MPU6050:
         """
         bit_string = str(XG_ST) + str(YG_ST) + str(ZG_ST) + self.i2c.int_to_binary_string(FS_SEL, 2) + "000"
         self.write_data(RegisterMap.GYRO_CONFIG, self.i2c.binary_string_to_int(bit_string))
-        self.gyro_fs = FS_SEL
+        self.gyro_fs = RegisterMap.GYRO_LSB[FS_SEL]
         
         print("Activation of Self-Test on axis (x, y, z)", XG_ST, YG_ST, ZG_ST)
         print("Setting the Gyro full scale range +/-", 250*2**FS_SEL, "º/s")
@@ -378,7 +379,7 @@ class MPU6050:
         YA_ST = bit_string[1]
         ZA_ST = bit_string[2]
         AFS_SEL = self.i2c.binary_string_to_int(bit_string[3:5])
-        self.accel_fs = 2**(AFS_SEL+1)
+        self.accel_fs = RegisterMap.ACCEL_LSB[AFS_SEL]
         
         print("Self-Test activated on axis (x, y, z)", XA_ST, YA_ST, ZA_ST)
         print("Accel full scale range +/-", 2**(AFS_SEL+1), "g")
@@ -407,7 +408,7 @@ class MPU6050:
         """
         bit_string = str(XA_ST) + str(YA_ST) + str(ZA_ST) + self.i2c.int_to_binary_string(AFS_SEL, 2) + "000"
         self.write_data(RegisterMap.ACCEL_CONFIG, self.i2c.binary_string_to_int(bit_string))
-        self.accel_fs = 2**(AFS_SEL+1)
+        self.accel_fs = RegisterMap.ACCEL_LSB[AFS_SEL]
         
         print("Activation of Self-Test on Accel axis (x, y, z)", XA_ST, YA_ST, ZA_ST)
         print("Setting the Accel full scale range +/-", 2**(AFS_SEL+1), "g")
