@@ -114,6 +114,7 @@ class MPU6050:
         self.temp = 0
         self.gyro_fs = 0
         self.accel_fs = 0
+        self.DEBUG = False
         
     def read_measurement(self, register):
         """
@@ -207,7 +208,8 @@ class MPU6050:
         bit_string = self.i2c.int_to_binary_string(data, 8)
         new_string = self.i2c.modify_bit_string(bit_string, value, position)
         new_data = self.i2c.binary_string_to_int(new_string)
-        print("Modifying register:", register, ":", bit_string, "->", new_string)
+        if self.DEBUG:
+            print("Modifying register:", register, ":", bit_string, "->", new_string)
         self.write_data(register, new_data)
 
     def calibrate(self):
@@ -1049,19 +1051,22 @@ class MPU6050:
     def temp_get(self):
         
         self.read_temperature()
-        print("Temperature: ºC", self.temp)
+        if self.DEBUG:
+            print("Temperature: ºC", self.temp)
         return self.temp 
         
     def gyro_get(self):
         
         self.read_gyro()
-        print("Gyro: º/s", self.gyro)
+        if self.DEBUG:
+            print("Gyro: º/s", self.gyro)
         return self.gyro
         
     def accel_get(self):
         
         self.read_accel()
-        print("Accel: g", self.accel)
+        if self.DEBUG:
+            print("Accel: g", self.accel)
         return self.accel
     
     def pass_through_mode_set(self, state):
