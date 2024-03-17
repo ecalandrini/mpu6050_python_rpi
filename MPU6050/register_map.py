@@ -103,3 +103,15 @@ class RegisterMap:
     FIFO_COUNTL = 0x73
     FIFO_R_W = 0x74
     WHO_AM_I = 0x75
+    
+    GYRO_LSB = {
+        0 : 131,
+        1 : 65.5,
+        2 : 32.8,
+        3 : 16.4}
+    
+    ACCEL_LSB = {
+        0 : 16384,
+        1 : 8192,
+        2 : 4096,
+        3 : 2048}
