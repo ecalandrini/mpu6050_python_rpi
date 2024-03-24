@@ -264,3 +264,7 @@ class HMC5883L:
                 break
             else:
                 print("Self Test Not Passed. Increasing Gain...")
+
+    def temperature_calibration(self, option):
+        pass
+
