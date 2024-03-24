@@ -22,7 +22,6 @@ sensor.pass_through_mode_get()
 sensor.pass_through_mode_set(True)
 sensor.pass_through_mode_get()
 
-
 t = []
 gy = []
 a = []
